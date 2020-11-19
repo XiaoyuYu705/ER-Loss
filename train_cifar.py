@@ -11,8 +11,7 @@ import os
 import argparse
 #from read_ImageNetData import ImageNetData
 from CIFAR100 import ImageNetData
-#from corloss1 import Correlation_CrossEntropyLoss#w
-from corloss2 import Correlation_CrossEntropyLoss#s
+from corloss2 import Correlation_CrossEntropyLoss
 import se_resnet
 import se_resnext
 from tensorboardX import SummaryWriter
@@ -27,8 +26,7 @@ def train_model(args, model, criterion, optimizer, scheduler, num_epochs, datase
     a2 = torch.empty(1,100)
     b1 = torch.empty(1,100)
     b2 = torch.empty(1,100)
-    file_name = 'resnext_cifar100.xlsx'#senet
-    #file_name = 'prob_cifar.xlsx'#resnet
+    file_name = 'resnext_cifar100.xlsx'
     file = xlrd.open_workbook(file_name)
     sheet = file.sheet_by_name('Sheet3')
     nrows = sheet.nrows
@@ -92,27 +90,22 @@ def train_model(args, model, criterion, optimizer, scheduler, num_epochs, datase
 
                 # forward
                 outputs = model(inputs)
-                #print(outputs.size())
                 maxk = max((1,5))#top-5
                 _, preds = torch.max(outputs.data, 1)
                 _, pred_5 = outputs.topk(maxk, 1, True, True)#top-5
                 loss = criterion(outputs, labels)
                 yuanloss = criterion(outputs, labels)#celoss
-                #print(loss)
+
                 cor_output = outputs.cpu()
                 target = labels
-                #a = cor_criterion(cor_output, target, X1,Y1,T=3000)#d=1
+
                 a = cor_criterion(cor_output, target, X1,Y1,X2,Y2,T=3000)#d=2
                 loss1 = a[0]
                 loss2 = loss1.view(1)
                 corloss = loss2.squeeze(0)
                 corloss = corloss.cuda()
-                #print(corloss)
                 loss.data = corloss
-                #print(loss)
-                #outputs = model(inputs)
-                #_, preds = torch.max(outputs.data, 1)
-                #loss = criterion(outputs, labels)
+
 
                 # backward + optimize only if in training phase
                 if phase == 'train':
@@ -125,14 +118,13 @@ def train_model(args, model, criterion, optimizer, scheduler, num_epochs, datase
                 K += a[1]
                 Z += a[2]
                 J += a[3]
-                #running_loss += loss.data[0]
+
                 running_corrects += float(torch.sum(preds == labels.data))
                 correct_count_5 += float(torch.sum(pred_5[:,0] ==labels.data))
                 correct_count_5 += float(torch.sum(pred_5[:,1] ==labels.data))
                 correct_count_5 += float(torch.sum(pred_5[:,2] ==labels.data))
                 correct_count_5 += float(torch.sum(pred_5[:,3] ==labels.data))
                 correct_count_5 += float(torch.sum(pred_5[:,4] ==labels.data))#top-5
-                #running_corrects += torch.sum(preds == labels.data)
 
                 batch_loss = running_loss / ((i+1)*args.batch_size)
                 batch_acc = running_corrects / ((i+1)*args.batch_size)
